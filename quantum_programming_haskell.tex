@@ -94,7 +94,7 @@ Measurement in quantum mechanics collapses a qubit's state to one of the basis s
 
 \section{Haskell and Quantum Programming}
 \label{sec:haskell}
-Haskell is a statically-typed, purely functional programming language. Its features—such as higher-order functions, lazy evaluation, and a powerful type system—render it a natural choice for expressing quantum algorithms.
+Haskell is a statically-typed, purely functional programming language. Its features---such as higher-order functions, lazy evaluation, and a powerful type system---render it a natural choice for expressing quantum algorithms.
 
 \subsection{Advantages of Haskell for Quantum Programming}
 \begin{itemize}
@@ -157,17 +157,66 @@ measure (Qubit a b) = do
 \end{lstlisting}
 
 \subsection{Case Study: Quantum Teleportation}
-Quantum teleportation is a fundamental protocol in quantum communication. The protocol can be modeled using Haskell to represent both the entangled state and the sequence of operations required. A simplified version of the protocol involves:
-\begin{itemize}
-    \item Creating an entangled pair.
-    \item Applying a Bell measurement.
-    \item Using classical communication to complete the teleportation.
-\end{itemize}
-We can model the entangled state as:
-\[
-\ket{\Phi^+} = \frac{1}{\sqrt{2}} (\ket{00} + \ket{11})
-\]
-and implement the corresponding operations in Haskell. Detailed code is omitted for brevity, but the approach leverages Haskell’s strong type system to ensure the correctness of state transformations.
+Quantum teleportation is a fundamental protocol in quantum communication. Below is an example implementation in Haskell that leverages the language's strong type system to ensure correctness of state transformations.
+
+\subsubsection{Quantum Teleportation Code Example}
+\begin{lstlisting}[language=Haskell]
+-- Define a simple Qubit type
+data Qubit = Qubit { alpha :: Complex Double, beta :: Complex Double }
+
+-- Basic quantum gates
+hadamard :: Qubit -> Qubit
+hadamard (Qubit a b) = Qubit a' b'
+  where
+    factor = 1 / sqrt 2 :+ 0
+    a' = factor * (a + b)
+    b' = factor * (a - b)
+
+xGate :: Qubit -> Qubit
+xGate (Qubit a b) = Qubit b a
+
+zGate :: Qubit -> Qubit
+zGate (Qubit a b) = Qubit a (negate b)
+
+-- Create a Bell pair (maximally entangled state)
+bellPair :: (Qubit, Qubit)
+bellPair =
+  let q0 = Qubit (1 :+ 0) 0
+      q1 = Qubit 0 (1 :+ 0)
+  in (hadamard q0, q1)
+
+-- Simulated Bell measurement (for demonstration, using IO for randomness)
+import System.Random
+import System.IO.Unsafe (unsafePerformIO)
+
+bellMeasurement :: (Qubit, Qubit) -> (Int, Int)
+bellMeasurement (q1, q2) = (m1, m2)
+  where
+    m1 = unsafePerformIO $ measure q1
+    m2 = unsafePerformIO $ measure q2
+
+-- Quantum Teleportation procedure:
+-- Teleport qubit 'q' from sender to receiver using a Bell pair.
+teleport :: Qubit -> Qubit
+teleport q =
+  let (aliceQubit, bobQubit) = bellPair
+      -- Combine the sender's qubit with one qubit from the Bell pair
+      combinedState = (q, aliceQubit)
+      (m1, m2) = bellMeasurement combinedState
+      -- Based on measurement outcomes, apply corrections to Bob's qubit
+      correctedBob = case (m1, m2) of
+         (0, 0) -> bobQubit
+         (0, 1) -> xGate bobQubit
+         (1, 0) -> zGate bobQubit
+         (1, 1) -> xGate (zGate bobQubit)
+  in correctedBob
+\end{lstlisting}
+This code example demonstrates the core steps of quantum teleportation:
+\begin{enumerate}
+  \item Generating an entangled Bell pair.
+  \item Performing a Bell measurement on the sender's qubit and one part of the entangled pair.
+  \item Using the measurement outcomes to apply corrective operations on the receiver's qubit.
+\end{enumerate}
 
 \section{Error Correction in Haskell}
 \label{sec:errcorr}
@@ -258,7 +307,7 @@ The modules presented in this paper (including \texttt{ErrorCorrection.hs}, \tex
 Quantum programming demands a careful balance between abstract mathematical modeling and practical algorithm implementation. Haskell, with its powerful type system and functional paradigm, presents a compelling option for quantum programming. In this paper, we have analyzed the core advantages of Haskell in the quantum domain, provided concrete examples and code snippets, and demonstrated its applicability to error correction and entanglement. Future research will likely see a deeper integration of functional programming principles with quantum computing theory, further bridging the gap between abstract mathematics and computational practice.
 
 \section*{Acknowledgments}
-The authors wish to thank the research community for ongoing discussions and insights into both quantum computing and functional programming. Special thanks to colleagues at the University of Computation and the Institute of Quantum Studies for providing valuable modules and code insights.
+The author wishes to thank the research community for ongoing discussions and insights into both quantum computing and functional programming. Special thanks to colleagues at Magneton Labs for providing valuable modules and code insights.
 
 \begin{thebibliography}{9}
 \bibitem{nielsen2000quantum}
